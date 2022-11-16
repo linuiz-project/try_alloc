@@ -2,6 +2,7 @@ use alloc::{alloc::Global, boxed::Box};
 use core::{
     alloc::{AllocError, Allocator},
     mem::MaybeUninit,
+    ptr::NonNull,
 };
 
 pub struct TryBox<T, A: Allocator = Global>(Box<T, A>);
@@ -27,6 +28,14 @@ impl<T, A: Allocator> TryBox<T, A> {
     #[inline]
     pub fn new_uninit_in(allocator: A) -> Result<TryBox<MaybeUninit<T>, A>, AllocError> {
         Box::try_new_uninit_in(allocator).map(|boxed| TryBox(boxed))
+    }
+
+    /// # Safety
+    ///
+    /// It is undefined behaviour to use this function to obtain shared mutable references.
+    #[inline]
+    pub unsafe fn as_nonnull_ptr(slf: Self) -> NonNull<T> {
+        NonNull::from(&**slf)
     }
 }
 
