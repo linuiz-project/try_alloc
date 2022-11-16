@@ -31,15 +31,15 @@ impl<T, A: Allocator> TryBox<T, A> {
 }
 
 impl<T, A: Allocator> core::ops::Deref for TryBox<T, A> {
-    type Target = T;
+    type Target = Box<T, A>;
 
     fn deref(&self) -> &Self::Target {
-        self.0.deref()
+        &self.0
     }
 }
 
 impl<T, A: Allocator> core::ops::DerefMut for TryBox<T, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0.deref_mut()
+        &mut self.0
     }
 }
