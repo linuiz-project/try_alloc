@@ -34,8 +34,8 @@ impl<T, A: Allocator> TryBox<T, A> {
     ///
     /// It is undefined behaviour to use this function to obtain shared mutable references.
     #[inline]
-    pub unsafe fn as_nonnull_ptr(slf: Self) -> NonNull<T> {
-        NonNull::from(&**slf)
+    pub unsafe fn as_nonnull_ptr(slf: &Self) -> NonNull<T> {
+        NonNull::from(&***slf)
     }
 }
 
