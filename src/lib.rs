@@ -10,3 +10,4 @@ extern crate alloc;
 
 pub mod vec;
 pub mod boxed;
+pub mod sync;

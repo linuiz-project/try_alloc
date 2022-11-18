@@ -10,6 +10,24 @@ pub struct TryBox<U: ?Sized, A: Allocator = Global> {
     allocator: A,
 }
 
+impl<T: ?Sized, A: Allocator> TryBox<T, A> {
+    /// # Safety
+    ///
+    /// It is undefined behaviour to use this function to obtain shared mutable references.
+    #[inline]
+    pub unsafe fn as_nonnull_ptr(slf: &Self) -> NonNull<T> {
+        slf.ptr
+    }
+
+    #[inline]
+    pub unsafe fn leak<'a>(mut slf: Self) -> &'a mut T
+    where
+        A: 'a,
+    {
+        slf.ptr.as_mut()
+    }
+}
+
 impl<T> TryBox<T> {
     #[inline]
     pub fn new(value: T) -> Result<Self, AllocError> {
@@ -41,14 +59,6 @@ impl<T, A: Allocator> TryBox<T, A> {
         let layout = Layout::new::<MaybeUninit<T>>();
         allocator.allocate(layout).map(|ptr| TryBox { ptr: ptr.as_non_null_ptr().cast(), allocator })
     }
-
-    /// # Safety
-    ///
-    /// It is undefined behaviour to use this function to obtain shared mutable references.
-    #[inline]
-    pub unsafe fn as_nonnull_ptr(slf: &Self) -> NonNull<T> {
-        slf.ptr
-    }
 }
 
 impl<T, A: Allocator> TryBox<MaybeUninit<T>, A> {
@@ -58,12 +68,38 @@ impl<T, A: Allocator> TryBox<MaybeUninit<T>, A> {
     }
 }
 
+impl<T: Copy> TryBox<[T]> {
+    pub fn new_slice(len: usize, value: T) -> Result<Self, AllocError> {
+        TryBox::new_slice_in(len, value, Global)
+    }
+}
+
+impl<T: Copy, A: Allocator> TryBox<[T], A> {
+    pub fn new_slice_in(len: usize, value: T, allocator: A) -> Result<Self, AllocError> {
+        let mut slice = Self::new_uninit_slice_in(len, allocator)?;
+        slice.fill(MaybeUninit::new(value));
+        // ### Safety: Slice has been initialized.
+        Ok(unsafe { TryBox::<[_], _>::assume_init(slice) })
+    }
+}
+
 impl<T, A: Allocator> TryBox<[T], A> {
+    #[inline]
     pub fn new_uninit_slice_in(len: usize, allocator: A) -> Result<TryBox<[MaybeUninit<T>], A>, AllocError> {
         let layout = Layout::array::<MaybeUninit<T>>(len).map_err(|_| AllocError)?;
         allocator
             .allocate(layout)
             .map(|ptr| TryBox { ptr: NonNull::slice_from_raw_parts(ptr.as_non_null_ptr().cast(), len), allocator })
+    }
+}
+
+impl<T, A: Allocator> TryBox<[MaybeUninit<T>], A> {
+    #[inline]
+    pub unsafe fn assume_init(slf: Self) -> TryBox<[T], A> {
+        TryBox {
+            ptr: NonNull::slice_from_raw_parts(slf.ptr.as_non_null_ptr().cast(), slf.ptr.len()),
+            allocator: slf.allocator,
+        }
     }
 }
 
