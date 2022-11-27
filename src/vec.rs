@@ -76,18 +76,28 @@ impl<T, A: Allocator> TryVec<T, A> {
     }
 
     #[inline]
-    pub fn push(&mut self, item: T) -> Result<(), (T, TryReserveError)> {
+    pub fn push(&mut self, element: T) -> Result<(), (T, TryReserveError)> {
         if self.len() == self.capacity() && let Err(err) = self.0.try_reserve(1) {
-            return Err((item, err));
+            return Err((element, err));
         }
 
-        self.0.push(item);
+        self.0.push(element);
         Ok(())
     }
 
     #[inline]
     pub fn pop(&mut self) -> Option<T> {
         self.0.pop()
+    }
+
+    #[inline]
+    pub fn insert(&mut self, index: usize, element: T) -> Result<(), (T, TryReserveError)> {
+        if self.len() == self.capacity() && let Err(err) = self.0.try_reserve(1) {
+            return Err((element, err));
+        }
+
+        self.0.insert(index, element);
+        Ok(())
     }
 }
 
