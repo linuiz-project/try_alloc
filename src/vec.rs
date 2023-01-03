@@ -1,5 +1,5 @@
 use alloc::{alloc::Global, collections::TryReserveError, vec::Vec};
-use core::alloc::Allocator;
+use core::{alloc::Allocator, num::NonZeroUsize};
 
 pub struct TryVec<T, A: Allocator = Global>(Vec<T, A>);
 
@@ -75,9 +75,17 @@ impl<T, A: Allocator> TryVec<T, A> {
         self.0.clear();
     }
 
+    pub fn try_reserve(&mut self, additional: NonZeroUsize) -> Result<(), TryReserveError> {
+        self.0.try_reserve(additional.get())
+    }
+
+    pub fn try_reserve_one(&mut self) -> Result<(), TryReserveError> {
+        self.0.try_reserve(1)
+    }
+
     #[inline]
     pub fn push(&mut self, element: T) -> Result<(), (T, TryReserveError)> {
-        if self.len() == self.capacity() && let Err(err) = self.0.try_reserve(1) {
+        if self.len() == self.capacity() && let Err(err) = self.try_reserve_one() {
             return Err((element, err));
         }
 
@@ -92,7 +100,7 @@ impl<T, A: Allocator> TryVec<T, A> {
 
     #[inline]
     pub fn insert(&mut self, index: usize, element: T) -> Result<(), (T, TryReserveError)> {
-        if self.len() == self.capacity() && let Err(err) = self.0.try_reserve(1) {
+        if self.len() == self.capacity() && let Err(err) = self.try_reserve_one() {
             return Err((element, err));
         }
 
@@ -112,5 +120,17 @@ impl<T, A: Allocator> core::ops::Deref for TryVec<T, A> {
 impl<T, A: Allocator> core::ops::DerefMut for TryVec<T, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.0.deref_mut()
+    }
+}
+
+impl<T: PartialEq, A: Allocator> PartialEq for TryVec<T, A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl<T: core::fmt::Debug, A: Allocator> core::fmt::Debug for TryVec<T, A> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.fmt(f)
     }
 }
