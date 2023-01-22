@@ -112,29 +112,38 @@ impl<T, A: Allocator> TryVec<T, A> {
         self.0.insert(index, element);
         Ok(())
     }
+
+    #[inline]
+    pub const fn into_vec(self) -> Vec<T, A> {
+        self.0
+    }
 }
 
 impl<T, A: Allocator> core::ops::Deref for TryVec<T, A> {
     type Target = [T];
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         self.0.deref()
     }
 }
 
 impl<T, A: Allocator> core::ops::DerefMut for TryVec<T, A> {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.0.deref_mut()
     }
 }
 
 impl<T: PartialEq, A: Allocator> PartialEq for TryVec<T, A> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.0.eq(&other.0)
     }
 }
 
 impl<T: core::fmt::Debug, A: Allocator> core::fmt::Debug for TryVec<T, A> {
+    #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         self.0.fmt(f)
     }
