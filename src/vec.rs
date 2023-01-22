@@ -17,7 +17,7 @@ impl<T> TryVec<T> {
     }
 
     #[inline]
-    pub const fn with_capacity(capacity: usize) -> Result<Self, TryReserveError> {
+    pub fn with_capacity(capacity: usize) -> Result<Self, TryReserveError> {
         Self::with_capacity_in(capacity, Global)
     }
 }
