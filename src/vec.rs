@@ -114,7 +114,7 @@ impl<T, A: Allocator> TryVec<T, A> {
     }
 
     #[inline]
-    pub const fn into_vec(self) -> Vec<T, A> {
+    pub fn into_vec(self) -> Vec<T, A> {
         self.0
     }
 }
