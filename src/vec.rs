@@ -15,6 +15,11 @@ impl<T> TryVec<T> {
     pub const fn new() -> Self {
         Self(Vec::new())
     }
+
+    #[inline]
+    pub const fn with_capacity(capacity: usize) -> Result<Self, TryReserveError> {
+        Self::with_capacity_in(capacity, Global)
+    }
 }
 
 impl<T, A: Allocator> TryVec<T, A> {
