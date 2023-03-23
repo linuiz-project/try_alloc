@@ -114,6 +114,16 @@ impl<T, A: Allocator> TryVec<T, A> {
     }
 
     #[inline]
+    pub fn remove(&mut self, index: usize) -> Option<T> {
+        (index < self.len()).then_some(self.0.remove(index))
+    }
+
+    #[inline]
+    pub fn swap_remove(&mut self, index: usize) -> Option<T> {
+        (index < self.len()).then_some(self.0.swap_remove(index))
+    }
+
+    #[inline]
     pub fn into_vec(self) -> Vec<T, A> {
         self.0
     }
