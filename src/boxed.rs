@@ -1,4 +1,4 @@
-use alloc::alloc::Global;
+use alloc::{alloc::Global, boxed::Box};
 use core::{
     alloc::{AllocError, Allocator, Layout},
     mem::MaybeUninit,
@@ -25,6 +25,11 @@ impl<T: ?Sized, A: Allocator> TryBox<T, A> {
         A: 'a,
     {
         slf.ptr.as_mut()
+    }
+
+    #[inline]
+    pub unsafe fn from_raw_parts(ptr: NonNull<T>, allocator: A) -> Self {
+        Self { ptr, allocator }
     }
 }
 
@@ -57,14 +62,20 @@ impl<T, A: Allocator> TryBox<T, A> {
     #[inline]
     pub fn new_uninit_in(allocator: A) -> Result<TryBox<MaybeUninit<T>, A>, AllocError> {
         let layout = Layout::new::<MaybeUninit<T>>();
-        allocator.allocate(layout).map(|ptr| TryBox { ptr: ptr.as_non_null_ptr().cast(), allocator })
+        allocator.allocate(layout).map(|ptr| TryBox {
+            ptr: ptr.as_non_null_ptr().cast(),
+            allocator,
+        })
     }
 }
 
 impl<T, A: Allocator> TryBox<MaybeUninit<T>, A> {
     #[inline]
     pub unsafe fn assume_init(slf: Self) -> TryBox<T, A> {
-        TryBox { ptr: slf.ptr.cast(), allocator: slf.allocator }
+        TryBox {
+            ptr: slf.ptr.cast(),
+            allocator: slf.allocator,
+        }
     }
 }
 
@@ -85,11 +96,15 @@ impl<T: Copy, A: Allocator> TryBox<[T], A> {
 
 impl<T, A: Allocator> TryBox<[T], A> {
     #[inline]
-    pub fn new_uninit_slice_in(len: usize, allocator: A) -> Result<TryBox<[MaybeUninit<T>], A>, AllocError> {
+    pub fn new_uninit_slice_in(
+        len: usize,
+        allocator: A,
+    ) -> Result<TryBox<[MaybeUninit<T>], A>, AllocError> {
         let layout = Layout::array::<MaybeUninit<T>>(len).map_err(|_| AllocError)?;
-        allocator
-            .allocate(layout)
-            .map(|ptr| TryBox { ptr: NonNull::slice_from_raw_parts(ptr.as_non_null_ptr().cast(), len), allocator })
+        allocator.allocate(layout).map(|ptr| TryBox {
+            ptr: NonNull::slice_from_raw_parts(ptr.as_non_null_ptr().cast(), len),
+            allocator,
+        })
     }
 }
 
@@ -116,5 +131,15 @@ impl<U: ?Sized, A: Allocator> core::ops::DerefMut for TryBox<U, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // ### Safety: Type constructs initialized values.
         unsafe { self.ptr.as_mut() }
+    }
+}
+
+impl<T: ?Sized, A: Allocator> From<Box<T, A>> for TryBox<T, A> {
+    fn from(value: Box<T, A>) -> Self {
+        let (ptr, allocator) = Box::into_raw_with_allocator(value);
+        Self {
+            ptr: unsafe { NonNull::new_unchecked(ptr) },
+            allocator,
+        }
     }
 }

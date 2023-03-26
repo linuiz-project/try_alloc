@@ -1,6 +1,8 @@
 use alloc::{alloc::Global, collections::TryReserveError, vec::Vec};
 use core::{alloc::Allocator, num::NonZeroUsize};
 
+use crate::boxed::TryBox;
+
 pub struct TryVec<T, A: Allocator = Global>(Vec<T, A>);
 
 impl<T> Default for TryVec<T> {
@@ -126,6 +128,11 @@ impl<T, A: Allocator> TryVec<T, A> {
     #[inline]
     pub fn into_vec(self) -> Vec<T, A> {
         self.0
+    }
+
+    #[inline]
+    pub fn into_boxed(self) -> TryBox<[T], A> {
+        TryBox::from(self.0.into_boxed_slice())
     }
 }
 
